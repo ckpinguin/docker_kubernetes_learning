@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+    db:
+        image: postgres
+        environment:
+            - POSTGRES_DB=drupal
+            - POSTGRES_USER=user
+            - POSTGRES_PASSWORD=pass
+        volumes:
+            - "dbdata:/var/lib/postgresql/data"
+    blog:
+        image: drupal
+        ports:
+            - '80:80'
+        volumes:
+            - drupal-modules:/var/www/html/modules
+            - drupal-profiles:/var/www/html/profiles
+            - drupal-themes:/var/www/html/themes
+            - drupal-sites:/var/www/html/sites
+volumes:
+    dbdata:
+    drupal-modules:
+    drupal-profiles:
+    drupal-themes:
+    drupal-sites:
