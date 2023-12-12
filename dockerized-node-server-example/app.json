@@ -1,0 +1,8 @@
+{
+  "name": "Parkapp-REST-server",
+  "description": "A barebones Node.js REST server using Express 4",
+  "repository": "https://github.com/ckpinguin/parkapp-REST-server",
+  "logo": "http://node-js-sample.herokuapp.com/node.svg",
+  "keywords": ["node", "express", "static"],
+  "image": "heroku/nodejs"
+}
