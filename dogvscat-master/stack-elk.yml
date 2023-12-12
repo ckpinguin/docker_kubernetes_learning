@@ -1,0 +1,91 @@
+version: '3.7'
+
+x-default-opts:
+  &default-opts
+  logging:
+    options:
+      max-size: "1m"
+  # driver: "gelf"
+  # options:
+  #   gelf-address: "udp://127.0.0.1:5000"
+
+services:
+
+  elasticsearch:
+    <<: *default-opts
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.4.0
+    configs:
+      - source: elastic_config
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+    volumes:
+      - elasticsearch:/usr/share/elasticsearch/data
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  logstash:
+    <<: *default-opts
+    image: docker.elastic.co/logstash/logstash-oss:6.4.0
+    ports:
+      - "5000:5000"
+      # - "5000:5000/udp"
+      - "9600:9600"
+    configs:
+      - source: logstash_config
+        target: /usr/share/logstash/config/logstash.yml
+      - source: logstash_pipeline
+        target: /usr/share/logstash/pipeline/logstash.conf
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elk
+    deploy:
+      mode: replicated
+      replicas: 1
+
+  kibana:
+    <<: *default-opts
+    image: docker.elastic.co/kibana/kibana-oss:6.4.0
+    configs:
+      - source: kibana_config
+        target: /usr/share/kibana/config/kibana.yml
+    networks:
+      - elk
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels:
+        traefik.http.routers.kibana.rule: Host(`kibana.dogvs.cat`)
+        traefik.http.routers.kibana.entryPoints: websecure
+        traefik.http.routers.kibana.service: kibana
+        traefik.http.routers.kibana.middlewares: kibana-auth
+        traefik.http.services.kibana.loadbalancer.server.port: 5601
+        traefik.http.middlewares.kibana-auth.basicauth.users: ${KIBANA_USER:-admin}:${KIBANA_PASSWORD:-$2y$05$oZcj4FgdSFEYNCH0EH/3Vu7Hp72gkvEadHzMsDhGFkbvS/ZrKMKfK}
+        # TODO: make secrets secret
+
+configs:
+
+  elastic_config:
+    file: ./docker-elk/elasticsearch/config/elasticsearch.yml
+  logstash_config:
+    file: ./docker-elk/logstash/config/logstash.yml
+  logstash_pipeline:
+    file: ./logstash.conf
+  kibana_config:
+    file: ./docker-elk/kibana/config/kibana.yml
+
+networks:
+  elk:
+  proxy:
+    external: true
+
+volumes:
+  elasticsearch:
+    driver: rexray/dobs
+    driver_opts:
+      size: 10

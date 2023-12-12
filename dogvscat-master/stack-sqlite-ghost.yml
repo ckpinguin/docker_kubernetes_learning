@@ -1,0 +1,53 @@
+version: '3.7'
+
+x-default-opts:
+  &default-opts
+  logging:
+    options:
+      max-size: "1m"
+  # driver: "gelf"
+  # options:
+  #   gelf-address: "udp://127.0.0.1:5000"
+
+services:
+
+  ghost:
+    <<: *default-opts
+    image: ghost:2-alpine
+    networks:
+      - proxy
+      - ghost
+    volumes:
+      - content:/var/lib/ghost/content
+    environment:
+      # see https://docs.ghost.org/docs/config#section-running-ghost-with-config-env-variables
+      NODE_ENV: production
+      # database__client: mysql
+      # database__connection__host: db
+      # database__connection__user: root
+      # database__connection__password: YOURDBPASSWORDhereee
+      # database__connection__database: ghost
+      url: http://ghost.dogvs.cat
+    deploy:
+      replicas: 1
+      labels:
+        traefik.http.routers.ghost.rule: Host(`ghost.dogvs.cat`)
+        traefik.http.routers.ghost.entryPoints: websecure
+        traefik.http.routers.ghost.service: ghost
+        traefik.http.services.ghost.loadbalancer.server.port: 2368
+
+  # TODO: backup for static content
+
+
+networks:
+  ghost: {}
+  proxy:
+    external: true
+
+volumes:
+  content:
+    driver: rexray/dobs
+    driver_opts:
+      size: 1
+
+
